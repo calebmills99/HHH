@@ -24,22 +24,28 @@ cd HHH
 pip install -r requirements.txt
 ```
 
-3. Run migrations:
+3. Set up environment variables (optional, for production):
+```bash
+export SECRET_KEY='your-secret-key-here'
+```
+For development, the app will use a default insecure key.
+
+4. Run migrations:
 ```bash
 python manage.py migrate
 ```
 
-4. Create a superuser (optional, for admin access):
+5. Create a superuser (optional, for admin access):
 ```bash
 python manage.py createsuperuser
 ```
 
-5. Run the development server:
+6. Run the development server:
 ```bash
 python manage.py runserver
 ```
 
-6. Open your browser and navigate to `http://127.0.0.1:8000/`
+7. Open your browser and navigate to `http://127.0.0.1:8000/`
 
 ## Usage
 
