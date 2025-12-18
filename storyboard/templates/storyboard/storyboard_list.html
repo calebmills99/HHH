@@ -1,0 +1,60 @@
+{% extends 'storyboard/base.html' %}
+
+{% block title %}My Storyboards{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2 style="color: #667eea;">My Storyboards</h2>
+    <a href="{% url 'storyboard:create' %}" class="btn">+ Create New Storyboard</a>
+</div>
+
+{% if storyboards %}
+    <div style="display: grid; gap: 1.5rem;">
+        {% for storyboard in storyboards %}
+        <div style="border: 2px solid #e1e8ed; border-radius: 8px; padding: 1.5rem; transition: all 0.3s; cursor: pointer;"
+             onmouseover="this.style.borderColor='#667eea'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.2)'"
+             onmouseout="this.style.borderColor='#e1e8ed'; this.style.boxShadow='none'"
+             onclick="window.location.href='{% url 'storyboard:detail' storyboard.pk %}'">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                    <h3 style="color: #333; margin-bottom: 0.5rem;">{{ storyboard.title }}</h3>
+                    <p style="color: #666; margin-bottom: 1rem;">
+                        {{ storyboard.description|truncatewords:30 }}
+                    </p>
+                    <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: #888;">
+                        <span>📅 {{ storyboard.created_at|date:"M d, Y" }}</span>
+                        <span>🎬 {{ storyboard.panels.count }} panel{{ storyboard.panels.count|pluralize }}</span>
+                    </div>
+                </div>
+                <div style="margin-left: 1rem;">
+                    <a href="{% url 'storyboard:detail' storyboard.pk %}" class="btn" style="padding: 0.5rem 1rem;">View</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if is_paginated %}
+    <div style="margin-top: 2rem; text-align: center;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="btn btn-secondary" style="padding: 0.5rem 1rem;">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Previous</a>
+        {% endif %}
+        
+        <span style="margin: 0 1rem; color: #666;">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Last</a>
+        {% endif %}
+    </div>
+    {% endif %}
+{% else %}
+    <div style="text-align: center; padding: 3rem; color: #888;">
+        <p style="font-size: 1.2rem; margin-bottom: 1rem;">You haven't created any storyboards yet.</p>
+        <a href="{% url 'storyboard:create' %}" class="btn">Create Your First Storyboard</a>
+    </div>
+{% endif %}
+{% endblock %}

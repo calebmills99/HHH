@@ -1,0 +1,123 @@
+{% extends 'storyboard/base.html' %}
+
+{% block title %}{{ storyboard.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+    
+    .panel-card {
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        padding: 1.5rem;
+        background: #f8f9fa;
+    }
+    
+    .panel-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .panel-number {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-right: 1rem;
+    }
+    
+    .panel-placeholder {
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{% url 'storyboard:list' %}" style="color: #667eea; text-decoration: none; font-weight: 500;">
+        ← Back to Storyboards
+    </a>
+</div>
+
+<div style="margin-bottom: 2rem;">
+    <h2 style="color: #667eea; margin-bottom: 1rem;">{{ storyboard.title }}</h2>
+    <div style="color: #888; margin-bottom: 1rem;">
+        Created on {{ storyboard.created_at|date:"F d, Y" }}
+    </div>
+    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 5px; border-left: 4px solid #667eea;">
+        <h3 style="color: #555; margin-bottom: 0.5rem;">Original Scene Description:</h3>
+        <p style="color: #666; line-height: 1.8;">{{ storyboard.description }}</p>
+    </div>
+</div>
+
+<div style="margin-top: 3rem;">
+    <h3 style="color: #333; margin-bottom: 1rem;">
+        Storyboard Panels ({{ storyboard.panels.count }})
+    </h3>
+    
+    {% if storyboard.panels.all %}
+    <div class="panel-grid">
+        {% for panel in storyboard.panels.all %}
+        <div class="panel-card">
+            <div class="panel-header">
+                <div class="panel-number">{{ panel.panel_number }}</div>
+                <h4 style="color: #333; flex: 1;">Panel {{ panel.panel_number }}</h4>
+            </div>
+            
+            <div class="panel-placeholder">
+                🎬
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <strong style="color: #555;">Description:</strong>
+                <p style="color: #666; margin-top: 0.5rem; line-height: 1.6;">
+                    {{ panel.description }}
+                </p>
+            </div>
+            
+            {% if panel.notes %}
+            <div style="background: #fff; padding: 1rem; border-radius: 5px; border-left: 3px solid #f5576c;">
+                <strong style="color: #555;">Director's Notes:</strong>
+                <p style="color: #666; margin-top: 0.5rem; font-style: italic;">
+                    {{ panel.notes }}
+                </p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #888; text-align: center; padding: 2rem;">
+        No panels generated yet.
+    </p>
+    {% endif %}
+</div>
+
+<div style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e1e8ed;">
+    <a href="{% url 'storyboard:create' %}" class="btn">Create Another Storyboard</a>
+    <a href="{% url 'storyboard:list' %}" class="btn btn-secondary" style="margin-left: 1rem;">Back to List</a>
+</div>
+{% endblock %}
