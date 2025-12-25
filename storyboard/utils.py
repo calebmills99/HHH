@@ -2,7 +2,15 @@
 Utility functions for generating storyboard panels from text descriptions.
 """
 import re
+import os
+import base64
+import logging
+import requests
+from django.core.files.base import ContentFile
 from .models import StoryboardPanel
+
+
+logger = logging.getLogger(__name__)
 
 
 def generate_storyboard_panels(storyboard):
@@ -50,6 +58,9 @@ def generate_storyboard_panels(storyboard):
             notes=_generate_panel_notes(panel_desc)
         )
         created_panels.append(panel)
+        
+        # Generate image for the panel
+        _generate_panel_image(panel, panel_desc)
     
     return created_panels
 
@@ -105,3 +116,95 @@ def _generate_panel_notes(description):
         notes.append("Standard shot - adjust as needed")
     
     return ' | '.join(notes)
+
+
+def _generate_panel_image(panel, description):
+    """
+    Generate an image for a storyboard panel using Stability AI API.
+    
+    Args:
+        panel: The StoryboardPanel model instance
+        description: The panel description text
+    
+    Returns:
+        Boolean indicating success or failure
+    """
+    # Get API key from environment variable
+    api_key = os.environ.get('STABILITY_API_KEY')
+    
+    if not api_key:
+        logger.warning("STABILITY_API_KEY not found in environment variables. Skipping image generation.")
+        return False
+    
+    # Enhance the description with storyboard-specific artistic direction
+    prompt = f"Cinematic storyboard sketch, black and white pencil drawing, {description}, professional film storyboard style, clear composition, dramatic lighting"
+    
+    # API endpoint
+    url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+    
+    # API headers
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    
+    # API request body
+    body = {
+        "text_prompts": [
+            {
+                "text": prompt,
+                "weight": 1
+            },
+            {
+                "text": "blurry, bad anatomy, text, watermarks, signatures, low quality, color, colored",
+                "weight": -1
+            }
+        ],
+        "cfg_scale": 7,
+        "height": 768,
+        "width": 1344,
+        "samples": 1,
+        "steps": 30
+    }
+    
+    try:
+        # Make API request
+        response = requests.post(url, headers=headers, json=body, timeout=60)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Extract the base64 image from the response
+            if data.get('artifacts') and len(data['artifacts']) > 0:
+                image_data = data['artifacts'][0].get('base64')
+                
+                if image_data:
+                    # Decode base64 image
+                    image_content = base64.b64decode(image_data)
+                    
+                    # Save image to the panel's image field
+                    filename = f"panel_{panel.id}.png"
+                    panel.image.save(filename, ContentFile(image_content), save=True)
+                    
+                    logger.info(f"Successfully generated image for panel {panel.id}")
+                    return True
+                else:
+                    logger.error(f"No image data in API response for panel {panel.id}")
+                    return False
+            else:
+                logger.error(f"No artifacts in API response for panel {panel.id}")
+                return False
+        else:
+            logger.error(f"Image generation failed for panel {panel.id}: API returned status {response.status_code}")
+            return False
+            
+    except requests.exceptions.Timeout:
+        logger.error(f"API request timed out for panel {panel.id}")
+        return False
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error generating image for panel {panel.id}: {str(e)}")
+        return False
+    except Exception as e:
+        logger.exception(f"Unexpected error generating image for panel {panel.id}: {str(e)}")
+        return False
