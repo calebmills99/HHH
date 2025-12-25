@@ -5,6 +5,7 @@ A Django web application that automatically generates storyboards from text desc
 ## Features
 
 - **Text-to-Storyboard Conversion**: Automatically analyzes scene descriptions and generates storyboard panels
+- **AI-Powered Image Generation**: Creates cinematic storyboard sketches using Stability AI (optional)
 - **Smart Panel Generation**: Intelligently splits scenes into logical panels based on actions and scene changes
 - **Directional Notes**: Provides camera angle and shot suggestions for each panel
 - **Panel Management**: View, organize, and manage all your storyboards
@@ -24,11 +25,20 @@ cd HHH
 pip install -r requirements.txt
 ```
 
-3. Set up environment variables (optional, for production):
+3. Set up environment variables:
 ```bash
+# Required for production
 export SECRET_KEY='your-secret-key-here'
+
+# Optional: Enable AI image generation with Stability AI
+export STABILITY_API_KEY='your-stability-ai-api-key'
 ```
-For development, the app will use a default insecure key.
+
+**Note on Image Generation:**
+- If `STABILITY_API_KEY` is not set, the app will still work perfectly but won't generate images
+- Images are generated automatically when creating new storyboards
+- You can get a free Stability AI API key at [https://platform.stability.ai](https://platform.stability.ai)
+- For development without image generation, you can skip setting the API key
 
 4. Run migrations:
 ```bash
@@ -117,17 +127,28 @@ The storyboard generator uses natural language processing techniques to:
 - `storyboard`: Foreign key to parent Storyboard
 - `panel_number`: Sequential panel number
 - `description`: Description of this specific panel
-- `image`: Optional image field for future artwork
+- `image`: AI-generated storyboard image (when Stability AI API key is configured)
 - `notes`: Directional notes and camera suggestions
+
+## AI Image Generation
+
+The application uses Stability AI's SDXL 1.0 model to automatically generate cinematic storyboard sketches for each panel:
+
+- **Style**: Black and white pencil drawing in professional film storyboard style
+- **Format**: Widescreen (1344x768) suitable for film production
+- **Automatic**: Images are generated when creating new storyboards (if API key is configured)
+- **Graceful Degradation**: Works perfectly without API key, just won't generate images
+
+**Prompt Engineering**: Each panel description is enhanced with artistic direction like "Cinematic storyboard sketch, black and white pencil drawing, professional film storyboard style, clear composition, dramatic lighting"
 
 ## Future Enhancements
 
-- AI-generated panel images using image generation APIs
 - Export to PDF format
 - Collaborative editing
 - Custom panel ordering and editing
 - Shot duration estimates
 - Character tracking across panels
+- Alternative AI image models support
 
 ## License
 
