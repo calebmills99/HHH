@@ -5,6 +5,10 @@ from .models import Storyboard, StoryboardPanel
 from .utils import generate_storyboard_panels, _generate_panel_image
 
 
+# Test base64 image (1x1 transparent PNG)
+TEST_BASE64_IMAGE = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+
 class StoryboardPanelGenerationTestCase(TestCase):
     """Test storyboard panel generation with image generation."""
     
@@ -38,7 +42,7 @@ class StoryboardPanelGenerationTestCase(TestCase):
         mock_response.json.return_value = {
             'artifacts': [
                 {
-                    'base64': 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+                    'base64': TEST_BASE64_IMAGE
                 }
             ]
         }
@@ -110,7 +114,7 @@ class StoryboardPanelGenerationTestCase(TestCase):
         mock_response.json.return_value = {
             'artifacts': [
                 {
-                    'base64': 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+                    'base64': TEST_BASE64_IMAGE
                 }
             ]
         }
