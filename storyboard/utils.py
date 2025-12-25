@@ -4,9 +4,13 @@ Utility functions for generating storyboard panels from text descriptions.
 import re
 import os
 import base64
+import logging
 import requests
 from django.core.files.base import ContentFile
 from .models import StoryboardPanel
+
+
+logger = logging.getLogger(__name__)
 
 
 def generate_storyboard_panels(storyboard):
@@ -129,7 +133,7 @@ def _generate_panel_image(panel, description):
     api_key = os.environ.get('STABILITY_API_KEY')
     
     if not api_key:
-        print("Warning: STABILITY_API_KEY not found in environment variables. Skipping image generation.")
+        logger.warning("STABILITY_API_KEY not found in environment variables. Skipping image generation.")
         return False
     
     # Enhance the description with storyboard-specific artistic direction
@@ -183,25 +187,24 @@ def _generate_panel_image(panel, description):
                     filename = f"panel_{panel.id}.png"
                     panel.image.save(filename, ContentFile(image_content), save=True)
                     
-                    print(f"Successfully generated image for panel {panel.id}")
+                    logger.info(f"Successfully generated image for panel {panel.id}")
                     return True
                 else:
-                    print(f"Error: No image data in API response for panel {panel.id}")
+                    logger.error(f"No image data in API response for panel {panel.id}")
                     return False
             else:
-                print(f"Error: No artifacts in API response for panel {panel.id}")
+                logger.error(f"No artifacts in API response for panel {panel.id}")
                 return False
         else:
-            print(f"Error generating image for panel {panel.id}: API returned status {response.status_code}")
-            print(f"Response: {response.text}")
+            logger.error(f"Image generation failed for panel {panel.id}: API returned status {response.status_code}")
             return False
             
     except requests.exceptions.Timeout:
-        print(f"Error: API request timed out for panel {panel.id}")
+        logger.error(f"API request timed out for panel {panel.id}")
         return False
     except requests.exceptions.RequestException as e:
-        print(f"Error generating image for panel {panel.id}: {str(e)}")
+        logger.error(f"Error generating image for panel {panel.id}: {str(e)}")
         return False
     except Exception as e:
-        print(f"Unexpected error generating image for panel {panel.id}: {str(e)}")
+        logger.exception(f"Unexpected error generating image for panel {panel.id}: {str(e)}")
         return False
