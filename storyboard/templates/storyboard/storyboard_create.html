@@ -1,0 +1,44 @@
+{% extends 'storyboard/base.html' %}
+
+{% block title %}Create Storyboard{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 2rem; color: #667eea;">Create New Storyboard</h2>
+
+<form method="post" style="max-width: 800px;">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+        {{ form.title }}
+        {% if form.title.errors %}
+            <div style="color: #e74c3c; margin-top: 0.5rem;">{{ form.title.errors }}</div>
+        {% endif %}
+    </div>
+    
+    <div class="form-group">
+        <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+        {{ form.description }}
+        {% if form.description.errors %}
+            <div style="color: #e74c3c; margin-top: 0.5rem;">{{ form.description.errors }}</div>
+        {% endif %}
+        <small style="color: #888; display: block; margin-top: 0.5rem;">
+            Tip: Be descriptive! Include actions, emotions, camera movements, and scene transitions for better results.
+        </small>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+        <button type="submit" class="btn">Generate Storyboard</button>
+        <a href="{% url 'storyboard:list' %}" class="btn btn-secondary" style="margin-left: 1rem;">Cancel</a>
+    </div>
+</form>
+
+<div style="margin-top: 3rem; padding: 1.5rem; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #667eea;">
+    <h3 style="color: #555; margin-bottom: 1rem;">Example Scene Description:</h3>
+    <p style="color: #666; line-height: 1.8;">
+        "A detective enters a dimly lit office. He looks around suspiciously. Suddenly, a shadow moves behind the curtain. 
+        The detective draws his gun and approaches carefully. He pulls back the curtain to reveal an open window with curtains 
+        blowing in the wind. He sighs with relief and holsters his weapon."
+    </p>
+</div>
+{% endblock %}

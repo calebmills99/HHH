@@ -1,0 +1,35 @@
+{% extends 'storyboard/base.html' %}
+
+{% block title %}Home - Storyboard Generator{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 3rem 0;">
+    <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: #333;">Welcome to Storyboard Generator</h2>
+    <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem; max-width: 700px; margin-left: auto; margin-right: auto;">
+        Transform your scene descriptions into visual storyboards. Simply describe your scene in text,
+        and our generator will break it down into logical panels with suggested camera angles and shots.
+    </p>
+    
+    <div style="margin-top: 3rem;">
+        <a href="{% url 'storyboard:create' %}" class="btn" style="font-size: 1.2rem; padding: 1rem 2rem;">
+            ✨ Create Your First Storyboard
+        </a>
+    </div>
+    
+    <div style="margin-top: 4rem; text-align: left; max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h3 style="color: #667eea; margin-bottom: 1rem;">How It Works:</h3>
+        <ol style="font-size: 1.1rem; line-height: 2; color: #555;">
+            <li><strong>Describe Your Scene:</strong> Write a detailed description of the scene you want to visualize</li>
+            <li><strong>Automatic Panel Generation:</strong> Our system analyzes your text and breaks it into logical storyboard panels</li>
+            <li><strong>Review & Refine:</strong> View your generated storyboard with panel descriptions and directional notes</li>
+            <li><strong>Export & Share:</strong> Save your storyboard for reference or further development</li>
+        </ol>
+    </div>
+    
+    <div style="margin-top: 3rem;">
+        <a href="{% url 'storyboard:list' %}" class="btn btn-secondary">
+            📋 View Existing Storyboards
+        </a>
+    </div>
+</div>
+{% endblock %}
