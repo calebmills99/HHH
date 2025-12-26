@@ -53,18 +53,31 @@ def generate_panel_image_view(request, pk):
     if request.method != 'POST':
         return redirect('storyboard:detail', pk=panel.storyboard_id)
 
-    prompt = request.POST.get('prompt') or build_image_prompt(panel.description)
-    panel.image_prompt = prompt
-    panel.prompt_approved = True
-    panel.save(update_fields=['image_prompt', 'prompt_approved'])
+    # Normalize the prompt input; treat empty/whitespace as no prompt
+    raw_prompt = request.POST.get('prompt')
+    prompt = (raw_prompt or '').strip()
+
+    if prompt:
+        # User provided a non-empty prompt; store and mark as approved
+        panel.image_prompt = prompt
+        panel.prompt_approved = True
+        update_fields = ['image_prompt', 'prompt_approved']
+    else:
+        # No usable prompt provided; fall back to generated prompt and leave unapproved
+        panel.image_prompt = build_image_prompt(panel.description)
+        panel.prompt_approved = False
+        update_fields = ['image_prompt', 'prompt_approved']
+
+    panel.save(update_fields=update_fields)
 
     if not os.environ.get('STABILITY_API_KEY'):
         messages.error(request, "Stability API key is missing. Add STABILITY_API_KEY to your environment and try again.")
         return redirect('storyboard:detail', pk=panel.storyboard_id)
 
-    if generate_panel_image(panel):
+    # Only generate image if prompt was approved
+    if panel.prompt_approved and generate_panel_image(panel):
         messages.success(request, f"Image generated for panel {panel.panel_number}.")
-    else:
+    elif panel.prompt_approved:
         messages.error(request, f"Failed to generate image for panel {panel.panel_number}. Please check logs or try again.")
 
     return redirect('storyboard:detail', pk=panel.storyboard_id)

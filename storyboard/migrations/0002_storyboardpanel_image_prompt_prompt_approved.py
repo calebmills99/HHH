@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='storyboardpanel',
             name='image_prompt',
-            field=models.TextField(blank=True, help_text='Prompt that will be sent to Stability AI for this panel'),
+            field=models.TextField(blank=True, default='', help_text='Prompt that will be sent to Stability AI for this panel'),
         ),
         migrations.AddField(
             model_name='storyboardpanel',
