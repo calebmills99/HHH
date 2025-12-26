@@ -25,13 +25,10 @@ cd HHH
 pip install -r requirements.txt
 ```
 
-3. Set up environment variables:
+3. Set up environment variables (recommended via `.env` file):
 ```bash
-# Required for production
-export SECRET_KEY='your-secret-key-here'
-
-# Optional: Enable AI image generation with Stability AI
-export STABILITY_API_KEY='your-stability-ai-api-key'
+cp .env.example .env
+# then edit .env with your own values
 ```
 
 **Note on Image Generation:**
@@ -157,4 +154,3 @@ This project is open source and available under the MIT License.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-

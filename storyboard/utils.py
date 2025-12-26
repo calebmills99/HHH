@@ -7,11 +7,13 @@ import base64
 import json
 import logging
 import requests
+from dotenv import load_dotenv
 from django.core.files.base import ContentFile
 from .models import StoryboardPanel
 
 
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 # Stability AI API Configuration
 STABILITY_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
