@@ -89,7 +89,7 @@
             
             {% if panel.image %}
             <div style="margin-bottom: 1rem;">
-                <img src="{{ panel.image.url }}" alt="Panel {{ panel.panel_number }}" style="width: 100%; border-radius: 5px;">
+                <img src="{{ panel.image.url }}" alt="Storyboard panel {{ panel.panel_number }}: {{ panel.description }}" style="width: 100%; border-radius: 5px;">
             </div>
             {% else %}
             <div class="panel-placeholder">

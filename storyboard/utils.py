@@ -4,6 +4,7 @@ Utility functions for generating storyboard panels from text descriptions.
 import re
 import os
 import base64
+import json
 import logging
 import requests
 from django.core.files.base import ContentFile
@@ -11,6 +12,23 @@ from .models import StoryboardPanel
 
 
 logger = logging.getLogger(__name__)
+
+# Stability AI API Configuration
+STABILITY_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+STABILITY_CFG_SCALE = 7
+STABILITY_HEIGHT = 768
+STABILITY_WIDTH = 1344
+STABILITY_SAMPLES = 1
+STABILITY_STEPS = 30
+STABILITY_TIMEOUT = 60
+
+# Prompt templates
+PROMPT_TEMPLATE = "Cinematic storyboard sketch, black and white pencil drawing, {description}, professional film storyboard style, clear composition, dramatic lighting"
+NEGATIVE_PROMPT = "blurry, bad anatomy, text, watermarks, signatures, low quality, color, colored"
+
+# Sanitization and logging limits
+MAX_DESCRIPTION_LENGTH = 500
+MAX_LOG_LENGTH = 500
 
 
 def generate_storyboard_panels(storyboard):
@@ -60,6 +78,11 @@ def generate_storyboard_panels(storyboard):
         created_panels.append(panel)
         
         # Generate image for the panel
+        # NOTE: Image generation is performed synchronously for each panel.
+        # For storyboards with multiple panels, this could result in long request times
+        # (e.g., 5 panels = up to 5 minutes worst case with 60-second timeout per panel).
+        # Consider implementing asynchronous task processing (e.g., using Celery) or
+        # providing user feedback that image generation is in progress.
         _generate_panel_image(panel, panel_desc)
     
     return created_panels
@@ -118,6 +141,26 @@ def _generate_panel_notes(description):
     return ' | '.join(notes)
 
 
+def _sanitize_description(description):
+    """
+    Sanitize panel description to prevent prompt injection attacks.
+    
+    Args:
+        description: The raw panel description text
+    
+    Returns:
+        Sanitized description limited to safe characters and length
+    """
+    # Limit length to prevent excessively long prompts
+    sanitized = description[:MAX_DESCRIPTION_LENGTH] if len(description) > MAX_DESCRIPTION_LENGTH else description
+    
+    # Remove potentially problematic characters that could manipulate prompts
+    # Keep alphanumeric, spaces, and common punctuation used in narrative descriptions
+    sanitized = re.sub(r'[^\w\s.,!?\-():\"\']', '', sanitized)
+    
+    return sanitized.strip()
+
+
 def _generate_panel_image(panel, description):
     """
     Generate an image for a storyboard panel using Stability AI API.
@@ -136,11 +179,14 @@ def _generate_panel_image(panel, description):
         logger.warning("STABILITY_API_KEY not found in environment variables. Skipping image generation.")
         return False
     
+    # Sanitize the description to prevent prompt injection
+    safe_description = _sanitize_description(description)
+    
     # Enhance the description with storyboard-specific artistic direction
-    prompt = f"Cinematic storyboard sketch, black and white pencil drawing, {description}, professional film storyboard style, clear composition, dramatic lighting"
+    prompt = PROMPT_TEMPLATE.format(description=safe_description)
     
     # API endpoint
-    url = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image"
+    url = STABILITY_API_URL
     
     # API headers
     headers = {
@@ -157,23 +203,27 @@ def _generate_panel_image(panel, description):
                 "weight": 1
             },
             {
-                "text": "blurry, bad anatomy, text, watermarks, signatures, low quality, color, colored",
+                "text": NEGATIVE_PROMPT,
                 "weight": -1
             }
         ],
-        "cfg_scale": 7,
-        "height": 768,
-        "width": 1344,
-        "samples": 1,
-        "steps": 30
+        "cfg_scale": STABILITY_CFG_SCALE,
+        "height": STABILITY_HEIGHT,
+        "width": STABILITY_WIDTH,
+        "samples": STABILITY_SAMPLES,
+        "steps": STABILITY_STEPS
     }
     
     try:
         # Make API request
-        response = requests.post(url, headers=headers, json=body, timeout=60)
+        response = requests.post(url, headers=headers, json=body, timeout=STABILITY_TIMEOUT)
         
         if response.status_code == 200:
-            data = response.json()
+            try:
+                data = response.json()
+            except json.JSONDecodeError as json_error:
+                logger.error(f"Failed to parse JSON response for panel {panel.id}: {str(json_error)}")
+                return False
             
             # Extract the base64 image from the response
             if data.get('artifacts') and len(data['artifacts']) > 0:
@@ -196,15 +246,36 @@ def _generate_panel_image(panel, description):
                 logger.error(f"No artifacts in API response for panel {panel.id}")
                 return False
         else:
-            logger.error(f"Image generation failed for panel {panel.id}: API returned status {response.status_code}")
+            # Log additional response details to aid debugging, while avoiding overly large log entries
+            response_details = None
+            try:
+                # Try to extract a useful error message from JSON, if available
+                error_json = response.json()
+                if isinstance(error_json, dict):
+                    # Common fields used by APIs for error messages
+                    response_details = error_json.get("error") or error_json.get("message") or str(error_json)
+                else:
+                    response_details = str(error_json)
+            except json.JSONDecodeError:
+                # Fallback to text content if response is not JSON
+                response_details = response.text
+            # Truncate response details to avoid logging excessively large payloads
+            if response_details is not None:
+                if len(response_details) > MAX_LOG_LENGTH:
+                    response_details = response_details[:MAX_LOG_LENGTH] + " ...[truncated]"
+            logger.error(
+                f"Image generation failed for panel {panel.id}: "
+                f"API returned status {response.status_code}"
+                f"{' with response: ' + response_details if response_details else ''}"
+            )
             return False
             
     except requests.exceptions.Timeout:
         logger.error(f"API request timed out for panel {panel.id}")
         return False
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error generating image for panel {panel.id}: {str(e)}")
+    except requests.exceptions.RequestException:
+        logger.error(f"Error generating image for panel {panel.id}")
         return False
-    except Exception as e:
-        logger.exception(f"Unexpected error generating image for panel {panel.id}: {str(e)}")
+    except Exception:
+        logger.exception(f"Unexpected error generating image for panel {panel.id}")
         return False
