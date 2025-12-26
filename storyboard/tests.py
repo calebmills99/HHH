@@ -1,6 +1,7 @@
 from django.test import TestCase
 from unittest.mock import patch, Mock
 import os
+import requests
 from .models import Storyboard, StoryboardPanel
 from .utils import generate_storyboard_panels, _generate_panel_image
 
@@ -48,7 +49,7 @@ class StoryboardPanelGenerationTestCase(TestCase):
         }
         
         with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
-            with patch('requests.post', return_value=mock_response) as mock_post:
+            with patch('storyboard.utils.requests.post', return_value=mock_response) as mock_post:
                 panels = generate_storyboard_panels(self.storyboard)
                 
                 # Verify panels were created
@@ -75,7 +76,7 @@ class StoryboardPanelGenerationTestCase(TestCase):
         )
         
         with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
-            with patch('requests.post', return_value=mock_response):
+            with patch('storyboard.utils.requests.post', return_value=mock_response):
                 result = _generate_panel_image(panel, "Test panel")
                 
                 # Should return False on failure
@@ -120,7 +121,7 @@ class StoryboardPanelGenerationTestCase(TestCase):
         }
         
         with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
-            with patch('requests.post', return_value=mock_response) as mock_post:
+            with patch('storyboard.utils.requests.post', return_value=mock_response) as mock_post:
                 _generate_panel_image(panel, panel.description)
                 
                 # Verify API was called
@@ -134,3 +135,21 @@ class StoryboardPanelGenerationTestCase(TestCase):
                 self.assertIn('Cinematic storyboard sketch', prompt)
                 self.assertIn('black and white pencil drawing', prompt)
                 self.assertIn('professional film storyboard style', prompt)
+    
+    def test_image_generation_timeout(self):
+        """Test that timeout scenario is handled correctly."""
+        panel = StoryboardPanel.objects.create(
+            storyboard=self.storyboard,
+            panel_number=1,
+            description="Test panel"
+        )
+        
+        with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
+            with patch('storyboard.utils.requests.post', side_effect=requests.exceptions.Timeout):
+                result = _generate_panel_image(panel, "Test panel")
+                
+                # Should return False on timeout
+                self.assertFalse(result)
+                
+                # Panel should still exist without an image
+                self.assertIsNone(panel.image.name)
