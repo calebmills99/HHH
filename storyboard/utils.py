@@ -4,6 +4,7 @@ Utility functions for generating storyboard panels from text descriptions.
 import re
 import os
 import base64
+import json
 import logging
 import requests
 from django.core.files.base import ContentFile
@@ -151,8 +152,8 @@ def _sanitize_description(description):
     sanitized = description[:max_length] if len(description) > max_length else description
     
     # Remove potentially problematic characters that could manipulate prompts
-    # Keep alphanumeric, spaces, and basic punctuation
-    sanitized = re.sub(r'[^\w\s.,!?\-]', '', sanitized)
+    # Keep alphanumeric, spaces, and common punctuation used in narrative descriptions
+    sanitized = re.sub(r'[^\w\s.,!?\-():\"\']', '', sanitized)
     
     return sanitized.strip()
 
@@ -217,7 +218,7 @@ def _generate_panel_image(panel, description):
         if response.status_code == 200:
             try:
                 data = response.json()
-            except ValueError as json_error:
+            except json.JSONDecodeError as json_error:
                 logger.error(f"Failed to parse JSON response for panel {panel.id}: {str(json_error)}")
                 return False
             
@@ -252,7 +253,7 @@ def _generate_panel_image(panel, description):
                     response_details = error_json.get("error") or error_json.get("message") or str(error_json)
                 else:
                     response_details = str(error_json)
-            except ValueError:
+            except json.JSONDecodeError:
                 # Fallback to text content if response is not JSON
                 response_details = response.text
             # Truncate response details to avoid logging excessively large payloads
