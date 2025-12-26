@@ -8,4 +8,5 @@ urlpatterns = [
     path('storyboards/', views.StoryboardListView.as_view(), name='list'),
     path('storyboards/create/', views.StoryboardCreateView.as_view(), name='create'),
     path('storyboards/<int:pk>/', views.StoryboardDetailView.as_view(), name='detail'),
+    path('storyboards/panels/<int:pk>/generate/', views.generate_panel_image_view, name='generate_panel_image'),
 ]

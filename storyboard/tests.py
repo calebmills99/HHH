@@ -2,7 +2,7 @@ from django.test import TestCase
 from unittest.mock import patch, Mock
 import os
 from .models import Storyboard, StoryboardPanel
-from .utils import generate_storyboard_panels, _generate_panel_image
+from .utils import generate_storyboard_panels, generate_panel_image
 
 
 # Test base64 image (1x1 transparent PNG)
@@ -32,6 +32,8 @@ class StoryboardPanelGenerationTestCase(TestCase):
             for panel in panels:
                 self.assertIsNotNone(panel.description)
                 self.assertIsNotNone(panel.notes)
+                self.assertIsNotNone(panel.image_prompt)
+                self.assertFalse(panel.prompt_approved)
                 self.assertIsNone(panel.image.name)  # No image should be generated
     
     def test_panels_generated_with_api_key_success(self):
@@ -50,16 +52,21 @@ class StoryboardPanelGenerationTestCase(TestCase):
         with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
             with patch('requests.post', return_value=mock_response) as mock_post:
                 panels = generate_storyboard_panels(self.storyboard)
+                first_panel = panels[0]
+                first_panel.prompt_approved = True
+                first_panel.save(update_fields=['prompt_approved'])
+                
+                result = generate_panel_image(first_panel)
                 
                 # Verify panels were created
                 self.assertGreater(len(panels), 0)
                 
-                # Verify API was called for each panel
-                self.assertEqual(mock_post.call_count, len(panels))
+                # Verify API was called once for the approved panel
+                self.assertEqual(mock_post.call_count, 1)
+                self.assertTrue(result)
                 
-                # Verify images were saved
-                for panel in panels:
-                    self.assertIsNotNone(panel.image.name)
+                # Verify image was saved
+                self.assertIsNotNone(first_panel.image.name)
     
     def test_image_generation_api_failure(self):
         """Test graceful handling of API failures."""
@@ -76,7 +83,9 @@ class StoryboardPanelGenerationTestCase(TestCase):
         
         with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
             with patch('requests.post', return_value=mock_response):
-                result = _generate_panel_image(panel, "Test panel")
+                panel.prompt_approved = True
+                panel.save(update_fields=['prompt_approved'])
+                result = generate_panel_image(panel)
                 
                 # Should return False on failure
                 self.assertFalse(result)
@@ -93,12 +102,27 @@ class StoryboardPanelGenerationTestCase(TestCase):
         )
         
         with patch.dict(os.environ, {}, clear=True):
-            result = _generate_panel_image(panel, "Test panel")
+            panel.prompt_approved = True
+            panel.save(update_fields=['prompt_approved'])
+            result = generate_panel_image(panel)
             
             # Should return False when no API key
             self.assertFalse(result)
             
             # No image should be generated
+            self.assertIsNone(panel.image.name)
+
+    def test_image_generation_requires_approval(self):
+        """Test that images are not generated until prompt is approved."""
+        panel = StoryboardPanel.objects.create(
+            storyboard=self.storyboard,
+            panel_number=1,
+            description="Test panel"
+        )
+        
+        with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
+            result = generate_panel_image(panel)
+            self.assertFalse(result)
             self.assertIsNone(panel.image.name)
     
     def test_panel_description_enhancement(self):
@@ -121,7 +145,9 @@ class StoryboardPanelGenerationTestCase(TestCase):
         
         with patch.dict(os.environ, {'STABILITY_API_KEY': 'test-key'}):
             with patch('requests.post', return_value=mock_response) as mock_post:
-                _generate_panel_image(panel, panel.description)
+                panel.prompt_approved = True
+                panel.save(update_fields=['prompt_approved'])
+                generate_panel_image(panel)
                 
                 # Verify API was called
                 self.assertTrue(mock_post.called)
