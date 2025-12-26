@@ -26,6 +26,10 @@ STABILITY_TIMEOUT = 60
 PROMPT_TEMPLATE = "Cinematic storyboard sketch, black and white pencil drawing, {description}, professional film storyboard style, clear composition, dramatic lighting"
 NEGATIVE_PROMPT = "blurry, bad anatomy, text, watermarks, signatures, low quality, color, colored"
 
+# Sanitization and logging limits
+MAX_DESCRIPTION_LENGTH = 500
+MAX_LOG_LENGTH = 500
+
 
 def generate_storyboard_panels(storyboard):
     """
@@ -148,8 +152,7 @@ def _sanitize_description(description):
         Sanitized description limited to safe characters and length
     """
     # Limit length to prevent excessively long prompts
-    max_length = 500
-    sanitized = description[:max_length] if len(description) > max_length else description
+    sanitized = description[:MAX_DESCRIPTION_LENGTH] if len(description) > MAX_DESCRIPTION_LENGTH else description
     
     # Remove potentially problematic characters that could manipulate prompts
     # Keep alphanumeric, spaces, and common punctuation used in narrative descriptions
@@ -258,9 +261,8 @@ def _generate_panel_image(panel, description):
                 response_details = response.text
             # Truncate response details to avoid logging excessively large payloads
             if response_details is not None:
-                max_length = 500
-                if len(response_details) > max_length:
-                    response_details = response_details[:max_length] + " ...[truncated]"
+                if len(response_details) > MAX_LOG_LENGTH:
+                    response_details = response_details[:MAX_LOG_LENGTH] + " ...[truncated]"
             logger.error(
                 f"Image generation failed for panel {panel.id}: "
                 f"API returned status {response.status_code}"
