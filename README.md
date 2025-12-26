@@ -6,6 +6,7 @@ A Django web application that automatically generates storyboards from text desc
 
 - **Text-to-Storyboard Conversion**: Automatically analyzes scene descriptions and generates storyboard panels
 - **AI-Powered Image Generation**: Creates cinematic storyboard sketches using Stability AI (optional)
+- **Prompt Review Workflow**: Review and edit AI prompts before sending them to Stability AI
 - **Smart Panel Generation**: Intelligently splits scenes into logical panels based on actions and scene changes
 - **Directional Notes**: Provides camera angle and shot suggestions for each panel
 - **Panel Management**: View, organize, and manage all your storyboards
@@ -25,10 +26,15 @@ cd HHH
 pip install -r requirements.txt
 ```
 
-3. Set up environment variables (recommended via `.env` file):
+3. Set up environment variables (create a `.env` file from the provided example):
 ```bash
 cp .env.example .env
-# then edit .env with your own values
+```
+Then edit `.env` with your values:
+```bash
+SECRET_KEY='your-secret-key-here'
+# Optional: Enable AI image generation with Stability AI
+STABILITY_API_KEY='your-stability-ai-api-key'
 ```
 
 **Note on Image Generation:**
@@ -62,7 +68,8 @@ python manage.py runserver
 2. Enter a title for your storyboard
 3. Write a detailed scene description
 4. Click "Generate Storyboard"
-5. View your generated panels with descriptions and directional notes
+5. Review each panel's AI prompt, edit if needed, and click "Generate Image" to send it to Stability AI
+6. View your generated panels with descriptions and directional notes
 
 ### Example Scene Description
 

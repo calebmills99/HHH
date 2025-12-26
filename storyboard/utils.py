@@ -75,18 +75,11 @@ def generate_storyboard_panels(storyboard):
             storyboard=storyboard,
             panel_number=i,
             description=panel_desc,
-            notes=_generate_panel_notes(panel_desc)
+            notes=_generate_panel_notes(panel_desc),
+            image_prompt=build_image_prompt(panel_desc)
         )
         created_panels.append(panel)
-        
-        # Generate image for the panel
-        # NOTE: Image generation is performed synchronously for each panel.
-        # For storyboards with multiple panels, this could result in long request times
-        # (e.g., 5 panels = up to 5 minutes worst case with 60-second timeout per panel).
-        # Consider implementing asynchronous task processing (e.g., using Celery) or
-        # providing user feedback that image generation is in progress.
-        _generate_panel_image(panel, panel_desc)
-    
+
     return created_panels
 
 
@@ -146,30 +139,29 @@ def _generate_panel_notes(description):
 def _sanitize_description(description):
     """
     Sanitize panel description to prevent prompt injection attacks.
-    
+
     Args:
         description: The raw panel description text
-    
+
     Returns:
         Sanitized description limited to safe characters and length
     """
     # Limit length to prevent excessively long prompts
     sanitized = description[:MAX_DESCRIPTION_LENGTH] if len(description) > MAX_DESCRIPTION_LENGTH else description
-    
+
     # Remove potentially problematic characters that could manipulate prompts
     # Keep alphanumeric, spaces, and common punctuation used in narrative descriptions
     sanitized = re.sub(r'[^\w\s.,!?\-():\"\']', '', sanitized)
-    
+
     return sanitized.strip()
 
 
-def _generate_panel_image(panel, description):
+def generate_panel_image(panel):
     """
-    Generate an image for a storyboard panel using Stability AI API.
+    Generate an image for a storyboard panel using the stored prompt.
     
     Args:
         panel: The StoryboardPanel model instance
-        description: The panel description text
     
     Returns:
         Boolean indicating success or failure
@@ -180,12 +172,13 @@ def _generate_panel_image(panel, description):
     if not api_key:
         logger.warning("STABILITY_API_KEY not found in environment variables. Skipping image generation.")
         return False
-    
-    # Sanitize the description to prevent prompt injection
-    safe_description = _sanitize_description(description)
-    
-    # Enhance the description with storyboard-specific artistic direction
-    prompt = PROMPT_TEMPLATE.format(description=safe_description)
+
+    if not panel.prompt_approved:
+        logger.warning("Attempted to generate image without prompt approval for panel %s", panel.id)
+        return False
+
+    # Use stored prompt (already sanitized when built) or build a new one
+    prompt = panel.image_prompt or build_image_prompt(panel.description)
     
     # API endpoint
     url = STABILITY_API_URL
@@ -281,3 +274,16 @@ def _generate_panel_image(panel, description):
     except Exception:
         logger.exception(f"Unexpected error generating image for panel {panel.id}")
         return False
+
+
+def build_image_prompt(description):
+    """
+    Build a Stability AI prompt for a given panel description.
+    
+    Args:
+        description: The panel description text
+    
+    Returns:
+        A formatted prompt string
+    """
+    return f"Cinematic storyboard sketch, black and white pencil drawing, {description}, professional film storyboard style, clear composition, dramatic lighting"

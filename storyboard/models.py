@@ -27,6 +27,8 @@ class StoryboardPanel(models.Model):
     description = models.TextField(help_text="Description of this panel")
     image = models.ImageField(upload_to='storyboard_panels/', blank=True, null=True)
     notes = models.TextField(blank=True, help_text="Additional notes or direction for this panel")
+    image_prompt = models.TextField(blank=True, help_text="Prompt that will be sent to Stability AI for this panel")
+    prompt_approved = models.BooleanField(default=False, help_text="Whether the prompt has been reviewed by the user")
     
     class Meta:
         ordering = ['panel_number']
