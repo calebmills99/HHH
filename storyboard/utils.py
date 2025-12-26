@@ -6,11 +6,13 @@ import os
 import base64
 import logging
 import requests
+from dotenv import load_dotenv
 from django.core.files.base import ContentFile
 from .models import StoryboardPanel
 
 
 logger = logging.getLogger(__name__)
+load_dotenv()
 
 
 def generate_storyboard_panels(storyboard):
