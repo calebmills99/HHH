@@ -55,14 +55,22 @@ def generate_panel_image_view(request, pk):
     if request.method != 'POST':
         return redirect('storyboard:detail', pk=panel.storyboard_id)
 
-    prompt = request.POST.get('prompt') or build_image_prompt(panel.description)
-    panel.image_prompt = prompt
-    panel.prompt_approved = True
-    panel.save(update_fields=['image_prompt', 'prompt_approved'])
-
+    # Check API key availability first, before modifying panel state
     if not os.environ.get('STABILITY_API_KEY'):
         messages.error(request, "Stability API key is missing. Add STABILITY_API_KEY to your environment and try again.")
         return redirect('storyboard:detail', pk=panel.storyboard_id)
+
+    # Get and sanitize the prompt
+    prompt_input = request.POST.get('prompt', '').strip()
+    if prompt_input:
+        prompt = build_image_prompt(prompt_input)
+    else:
+        prompt = build_image_prompt(panel.description)
+
+    # Now update and approve the panel
+    panel.image_prompt = prompt
+    panel.prompt_approved = True
+    panel.save(update_fields=['image_prompt', 'prompt_approved'])
 
     if generate_panel_image(panel):
         messages.success(request, f"Image generated for panel {panel.panel_number}.")
