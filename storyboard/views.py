@@ -34,11 +34,13 @@ class StoryboardCreateView(CreateView):
     form_class = StoryboardForm
     template_name = 'storyboard/storyboard_create.html'
     success_url = reverse_lazy('storyboard:list')
-    
+
     def form_valid(self, form):
         response = super().form_valid(form)
         # Generate storyboard panels from the description
-        generate_storyboard_panels(self.object)
+        panels = generate_storyboard_panels(self.object)
+        if not panels:
+            messages.warning(self.request, "No panels could be generated from the description. Please try a more detailed description.")
         return response
 
 
@@ -53,14 +55,22 @@ def generate_panel_image_view(request, pk):
     if request.method != 'POST':
         return redirect('storyboard:detail', pk=panel.storyboard_id)
 
-    prompt = request.POST.get('prompt') or build_image_prompt(panel.description)
-    panel.image_prompt = prompt
-    panel.prompt_approved = True
-    panel.save(update_fields=['image_prompt', 'prompt_approved'])
-
+    # Check API key availability first, before modifying panel state
     if not os.environ.get('STABILITY_API_KEY'):
         messages.error(request, "Stability API key is missing. Add STABILITY_API_KEY to your environment and try again.")
         return redirect('storyboard:detail', pk=panel.storyboard_id)
+
+    # Get and sanitize the prompt
+    prompt_input = request.POST.get('prompt', '').strip()
+    if prompt_input:
+        prompt = build_image_prompt(prompt_input)
+    else:
+        prompt = build_image_prompt(panel.description)
+
+    # Now update and approve the panel
+    panel.image_prompt = prompt
+    panel.prompt_approved = True
+    panel.save(update_fields=['image_prompt', 'prompt_approved'])
 
     if generate_panel_image(panel):
         messages.success(request, f"Image generated for panel {panel.panel_number}.")
