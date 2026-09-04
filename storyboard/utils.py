@@ -36,22 +36,34 @@ MAX_LOG_LENGTH = 500
 def generate_storyboard_panels(storyboard):
     """
     Generate storyboard panels from the text description.
-    
+
     This function analyzes the text description and breaks it down into
     logical panels/scenes. Each panel represents a key moment or shot.
-    
+
     Args:
         storyboard: The Storyboard model instance
-    
+
     Returns:
         List of created StoryboardPanel instances
     """
     description = storyboard.description
-    
-    # Split description into sentences
-    sentences = re.split(r'[.!?]+', description)
+
+    if not description or not description.strip():
+        logger.warning(f"Empty description for storyboard {storyboard.id}")
+        return []
+
+    # Split description into sentences, handling abbreviations
+    # Use a regex that splits on sentence boundaries (! ? or . followed by space and capital letter)
+    sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z])', description.strip())
+    if not re.search(r'[.!?]', description):
+        # No punctuation found, treat whole description as one sentence
+        sentences = [description.strip()]
     sentences = [s.strip() for s in sentences if s.strip()]
-    
+
+    if not sentences:
+        logger.warning(f"No sentences found in storyboard {storyboard.id}")
+        return []
+
     # Group sentences into logical panels (max 2-3 sentences per panel)
     panels = []
     current_panel = []
@@ -146,12 +158,15 @@ def _sanitize_description(description):
     Returns:
         Sanitized description limited to safe characters and length
     """
+    if not description:
+        return ""
+
     # Limit length to prevent excessively long prompts
-    sanitized = description[:MAX_DESCRIPTION_LENGTH] if len(description) > MAX_DESCRIPTION_LENGTH else description
+    sanitized = description[:MAX_DESCRIPTION_LENGTH]
 
     # Remove potentially problematic characters that could manipulate prompts
     # Keep alphanumeric, spaces, and common punctuation used in narrative descriptions
-    sanitized = re.sub(r'[^\w\s.,!?\-():\"\']', '', sanitized)
+    sanitized = re.sub(r'[^\w\s.,!?\-():\'\"]', '', sanitized)
 
     return sanitized.strip()
 
@@ -279,11 +294,12 @@ def generate_panel_image(panel):
 def build_image_prompt(description):
     """
     Build a Stability AI prompt for a given panel description.
-    
+
     Args:
         description: The panel description text
-    
+
     Returns:
         A formatted prompt string
     """
-    return f"Cinematic storyboard sketch, black and white pencil drawing, {description}, professional film storyboard style, clear composition, dramatic lighting"
+    sanitized = _sanitize_description(description)
+    return f"Cinematic storyboard sketch, black and white pencil drawing, {sanitized}, professional film storyboard style, clear composition, dramatic lighting"

@@ -34,11 +34,13 @@ class StoryboardCreateView(CreateView):
     form_class = StoryboardForm
     template_name = 'storyboard/storyboard_create.html'
     success_url = reverse_lazy('storyboard:list')
-    
+
     def form_valid(self, form):
         response = super().form_valid(form)
         # Generate storyboard panels from the description
-        generate_storyboard_panels(self.object)
+        panels = generate_storyboard_panels(self.object)
+        if not panels:
+            messages.warning(self.request, "No panels could be generated from the description. Please try a more detailed description.")
         return response
 
 
